@@ -11,7 +11,7 @@ namespace render {
   public:
     Refractive(std::string name, double refraction_index)
         : name{std::move(name)}, refraction_index(refraction_index) {
-      if (refraction_index < 1.0) {
+      if (refraction_index < 0.0) {
         throw std::runtime_error("Error: Invalid refractive index");
       }
     }
