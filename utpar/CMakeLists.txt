@@ -3,7 +3,7 @@ set(COMMON_SRC_FILES
 )
 
 set(CURRENT_DIR_SRC_FILES
-    # TODO: Añadir aquí los archivos para los tests
+    # TODO: Añadir aquí los archivos para las pruebas unitarias
     # ${CMAKE_CURRENT_SOURCE_DIR}/test_par.cpp
 )
 
