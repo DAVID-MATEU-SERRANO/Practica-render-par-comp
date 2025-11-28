@@ -16,7 +16,6 @@ int main(int argc, char * argv[]) {
   try {
     std::vector<std::string> arguments(argv, argv + argc);
     validate_arguments(argc, arguments);
-
     Scene scene = load_scene(arguments[1], arguments[2]);
 
     int const image_height = scene.get_pov().get_image_height();
@@ -28,9 +27,11 @@ int main(int argc, char * argv[]) {
     std::ofstream ppm_file(arguments[3]);
     write_ppm_header(ppm_file, image_width, image_height);
 
+    // TODO: Paralelizar la generación de números aleatorios
     std::mt19937_64 rng(scene.get_rays_rng_seed());
     std::mt19937_64 m_rng(scene.get_material_rng_seed());
 
+    // TODO: Paralelizar este bucle con ¿range2d? y ¿auto_partitioner?
     for (int f = 0; f < image_height; ++f) {
       for (int c = 0; c < image_width; ++c) {
         Pixel const pixel = scene.get_pixel_color(f, c, rng, m_rng);
