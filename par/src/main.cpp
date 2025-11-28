@@ -35,15 +35,13 @@ int main(int argc, char * argv[]) {
 
     /*TODO: 1. tbb::this_task_arena::max_concurrency() para obtener el número máximo de hilos que se
       pueden usar (2.2.6)
-      - Obviamente, no se pueden usar todos los hilos pero se tiene como base
       - Se debe probar con distintos números de hilos y EXPLICAR EN MEMORIA EL VALOR ÓPTIMO ELEGIDO
       (3.2)
-      - Se debe probar con distintos tamaños de grano y EXPLICAR EN MEMORIA EL VALOR ÓPTIMO ELEGIDO
-      Y SI ESTO ES RELEVANTE (3.2)
+      - int num_threads = ...;
     */
 
     /* TODO: 1. tbb::global_control para limitar el número de hilos a usar (2.3.2)
-      - Se utiliza el valor decidido en el punto anterior
+      - Se utiliza num_threads definido en el paso anterior
     */
 
     /* TODO: 2. Vectores de semillas generado antes del bucle (2.2.7)
@@ -61,9 +59,13 @@ int main(int argc, char * argv[]) {
     std::mt19937_64 rng(scene.get_rays_rng_seed());        // BORRAR
     std::mt19937_64 m_rng(scene.get_material_rng_seed());  // BORRAR
 
+    // Se debe probar con distintos tamaños de grano y EXPLICAR EN MEMORIA EL VALOR ÓPTIMO ELEGIDO Y
+    // SI ESTO ES RELEVANTE (3.2)
+    int const grain_size = 0;
+
     // Uso de parallel_for con blocked_range2d (2.3.4)
     tbb::parallel_for(
-        tbb::blocked_range2d<int>(0, image_height, 0, image_width),
+        tbb::blocked_range2d<int>(0, image_height, grain_size, 0, image_width, grain_size),
         [&](tbb::blocked_range2d<int> const & r) {
           // TODO: Se obtiene la referencia a las copias locales (generadores privados) con .local()
           // (2.2.4) -> FALTA
