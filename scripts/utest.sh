@@ -9,7 +9,4 @@ cmake --preset clang-tidy
 cmake --build --preset clang-tidy-debug --config Debug --target coverage-utcommon --parallel
 
 cmake --preset clang-tidy 
-cmake --build --preset clang-tidy-debug --config Debug --target coverage-utaos --parallel
-
-cmake --preset clang-tidy 
-cmake --build --preset clang-tidy-debug --config Debug --target coverage-utsoa --parallel
+cmake --build --preset clang-tidy-debug --config Debug --target coverage-utpar --parallel
