@@ -19,6 +19,29 @@ namespace {
   double const VALID_RADIUS               = 2.5;
   render::t_material const VALID_MATERIAL = create_default_matte();
 
+  // Pruebas para constructor de Sphere
+
+  // Caso de prueba función miembro: verifica que la inicialización sea exitosa con un radio
+  // positivo.
+  TEST(test_sphere, constructor_valid_initialization) {
+    EXPECT_NO_THROW({ render::Sphere const s(VALID_CENTER, VALID_RADIUS, VALID_MATERIAL); });
+  }
+
+  // Caso de prueba función miembro: verifica el caso de error obligatorio: Radio negativo o cero.
+  TEST(test_sphere, constructor_invalid_radius_throws_error) {
+    double const negative_radius = -0.001;
+    double const zero_radius     = 0.0;
+
+    // El constructor debe lanzar un error de runtime si el radio es negativo.
+    EXPECT_THROW(
+        { render::Sphere const s(VALID_CENTER, negative_radius, VALID_MATERIAL); },
+        std::runtime_error);
+
+    // El constructor debe lanzar un error de runtime si el radio es cero.
+    EXPECT_THROW(
+        { render::Sphere const s(VALID_CENTER, zero_radius, VALID_MATERIAL); }, std::runtime_error);
+  }
+
   // Pruebas para getters de Sphere
 
   TEST(test_sphere, getters_return_correct_values) {

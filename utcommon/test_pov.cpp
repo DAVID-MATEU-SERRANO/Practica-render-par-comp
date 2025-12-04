@@ -41,8 +41,9 @@ namespace {
 
   // Caso de prueba: vector focal con FOV 90 grados
   TEST(test_pov, pw_focal_vector_is_correct) {
-    render::Pov const pov          = create_base_pov(FOV_90);
-    render::Vector const focal_vec = pov.pw_focal_vector();  // {0, 0, -10} - {0, 0, 0} = {0, 0, -10}
+    render::Pov const pov = create_base_pov(FOV_90);
+    render::Vector const focal_vec =
+        pov.pw_focal_vector();  // {0, 0, -10} - {0, 0, 0} = {0, 0, -10}
 
     EXPECT_DOUBLE_EQ(focal_vec.get_x(), 0.0);
     EXPECT_DOUBLE_EQ(focal_vec.get_y(), 0.0);
@@ -52,7 +53,7 @@ namespace {
   // Caso de prueba: distancia focal con FOV 90 grados
   TEST(test_pov, pw_focal_distance_is_correct) {
     render::Pov const pov = create_base_pov(FOV_90);
-    double distance = pov.pw_focal_distance();
+    double const distance = pov.pw_focal_distance();
 
     EXPECT_DOUBLE_EQ(distance, 10.0);  // ||{0, 0, -10}|| = 10
   }
@@ -67,11 +68,11 @@ namespace {
   // Caso de prueba: vector desplazamiento horizontal y vertical de la ventana de proyección con FOV
   // 90 grados
   TEST(test_pov, pw_horizontal_and_vertical_vectors_are_correct_for_fov_90) {
-    render::Pov pov               = create_base_pov(FOV_90);
+    render::Pov const pov               = create_base_pov(FOV_90);
     render::Vector const horizontal_vec = pov.pw_horizontal_vector();
     render::Vector const vertical_vec   = pov.pw_vertical_vector();
-    double const pw_w             = pov.pw_width();
-    double const pw_h             = pov.pw_height();
+    double const pw_w                   = pov.pw_width();
+    double const pw_h                   = pov.pw_height();
 
     // Horizontal (p_h = wp * u). u = {-1, 0, 0}
     // Esperamos: {-wp, 0, 0}
@@ -99,7 +100,7 @@ namespace {
 
   // Caso de prueba: get_origin devuelve el origen correcto
   TEST(test_pov, get_origin_returns_correct_origin) {
-    render::Pov pov      = create_base_pov(FOV_90);
+    render::Pov const pov      = create_base_pov(FOV_90);
     render::Point const origin = pov.pw_origin();
 
     // Cálculo del origen esperado
