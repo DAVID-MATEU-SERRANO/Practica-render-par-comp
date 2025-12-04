@@ -27,9 +27,8 @@ namespace render {
   inline void parallel_render(Scene & scene, PixelAOS & pixels_aos, int image_width,
                               int image_height) {
     // Número de hilos y tamaño de grano -> CAMBIAR PARA PRUEBAS
-    int const max_threads_available = tbb::this_task_arena::max_concurrency();
-    int const num_threads           = max_threads_available;
-    int const grain_size            = 16;
+    int const num_threads           = 256;
+    int const grain_size            = 32;
     // Limitación global de memoria
     tbb::global_control const global_limit(tbb::global_control::max_allowed_parallelism,
                                            static_cast<std::size_t>(num_threads));

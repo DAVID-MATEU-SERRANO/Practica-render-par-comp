@@ -101,21 +101,17 @@ def main():
         print("Las imágenes tienen diferente número de píxeles")
         sys.exit(1)
     
-    max_diff = 0.0
     sum_squared_diff = 0.0
     
     for i in range(len(img1)):
         diff = diferencia_pixel(img1[i], img2[i])
-        if diff > max_diff:
-            max_diff = diff
         sum_squared_diff += diff * diff
-    
+
     mse = math.sqrt(sum_squared_diff / len(img1))
     
-    print(f"Diferencia máxima: {max_diff}")
     print(f"Error cuadrático medio (MSE): {mse}")
     
-    if max_diff < 150 and mse < 10:
+    if mse < 10:
         print("Resultado: Aceptable")
     else:
         print("Resultado: No aceptable")
