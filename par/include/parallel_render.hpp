@@ -27,8 +27,8 @@ namespace render {
   inline void parallel_render(Scene & scene, PixelAOS & pixels_aos, int image_width,
                               int image_height) {
     // Número de hilos y tamaño de grano -> CAMBIAR PARA PRUEBAS
-    int const num_threads           = 256;
-    int const grain_size            = 32;
+    int const num_threads = 256;
+    int const grain_size  = 32;
     // Limitación global de memoria
     tbb::global_control const global_limit(tbb::global_control::max_allowed_parallelism,
                                            static_cast<std::size_t>(num_threads));
@@ -36,8 +36,11 @@ namespace render {
     std::vector<std::uint64_t> ray_seeds(static_cast<std::size_t>(num_threads));
     std::vector<std::uint64_t> mat_seeds(static_cast<std::size_t>(num_threads));
     std::mt19937_64 master_ray_rng(scene.get_rays_rng_seed());
-    std::ranges::generate(ray_seeds.begin(), mat_seeds.end(), std::ref(master_ray_rng));
-    // Privaticación de generadores
+    std::ranges::generate(ray_seeds.begin(), ray_seeds.end(), std::ref(master_ray_rng));
+    std::mt19937_64 master_mat_rng(scene.get_material_rng_seed());
+    std::ranges::generate(mat_seeds.begin(), mat_seeds.end(), std::ref(master_mat_rng));
+
+    // Privatización de generadores
     tbb::enumerable_thread_specific<ThreadRNG> thread_rngs([&]() {
       static std::atomic<std::size_t> counter{0};
       std::size_t const idx      = counter++;
@@ -50,7 +53,7 @@ namespace render {
           ThreadRNG & local_rng = thread_rngs.local();
           for (int f = r.rows().begin(); f != r.rows().end(); ++f) {
             for (int c = r.cols().begin(); c != r.cols().end(); ++c) {
-              Pixel const pixel = scene.get_pixel_color(c, f, local_rng.ray_rng, local_rng.mat_rng);
+              Pixel const pixel = scene.get_pixel_color(f, c, local_rng.ray_rng, local_rng.mat_rng);
               std::size_t const index =
                   static_cast<std::size_t>(f) * static_cast<std::size_t>(image_width) +
                   static_cast<std::size_t>(c);
