@@ -131,20 +131,26 @@ namespace render {
     Vector const dy           = pov.pw_vertical_vector().dot(1.0 / pov.get_image_height());
     Point const initial_point = pov.get_camera_position();
 
-    Color final_accumulated_color = Color(0.0, 0.0, 0.0);
+    Color final_accumulated_color = tbb::parallel_reduce(
+        tbb::blocked_range<std::size_t>(0, static_cast<std::size_t>(samples_per_pixel)),
+        Color(0.0, 0.0, 0.0),
+        [&](tbb::blocked_range<std::size_t> const & r, Color local_sum) {
+          for (std::size_t ray_counter = r.begin(); ray_counter != r.end(); ++ray_counter) {
+            // El código de trazado de un rayo va aquí
+            double const rx = dist(rng);
+            double const ry = dist(rng);
+            Point const q =
+                pov.get_proyection_window().get_origin().add(dx.dot(c + rx)).add(dy.dot(f + ry));
+            Point current_origin     = initial_point;
+            Vector current_direction = q.substract(pov.get_camera_position()).normalized();
+            Color ray_color(1.0, 1.0, 1.0);
 
-    for (int ray_counter = 0; ray_counter < samples_per_pixel; ++ray_counter) {
-      double const rx = dist(rng);
-      double const ry = dist(rng);
-      Point const q =
-          pov.get_proyection_window().get_origin().add(dx.dot(c + rx)).add(dy.dot(f + ry));
-      Point current_origin     = initial_point;
-      Vector current_direction = q.substract(pov.get_camera_position()).normalized();
-      Color ray_color(1.0, 1.0, 1.0);
-
-      Color final_ray_color = depth_ray(current_origin, current_direction, ray_color, m_rng);
-      final_accumulated_color.add_in_place(final_ray_color);
-    }
+            Color final_ray_color = depth_ray(current_origin, current_direction, ray_color, m_rng);
+            local_sum.add_in_place(final_ray_color);
+          }
+          return local_sum;
+        },
+        [](Color x, Color y) { return x.add(y); });
 
     final_accumulated_color.multiply_in_place(1.0 / static_cast<double>(samples_per_pixel));
     final_accumulated_color.apply_gamma_correction(gamma);
