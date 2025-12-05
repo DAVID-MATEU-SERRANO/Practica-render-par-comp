@@ -112,6 +112,9 @@ namespace render {
     [[nodiscard]] Pixel get_pixel_color(int f, int c, std::mt19937_64 & rng,
                                         std::mt19937_64 & m_rng);
 
+    [[nodiscard]] Color depth_ray(Point current_origin, Vector current_direction, Color ray_color,
+                                  std::mt19937_64 & m_rng);
+
     // add
 
     void add_sphere(Sphere const & sphere) { spheres.push_back(sphere); }

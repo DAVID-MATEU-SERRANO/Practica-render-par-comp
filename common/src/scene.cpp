@@ -11,6 +11,8 @@
 #include "../include/vector.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_reduce.h>
 #include <random>
 #include <string>
 
@@ -99,12 +101,37 @@ namespace render {
     }
   }
 
+  Color Scene::depth_ray(Point current_origin, Vector current_direction, Color ray_color,
+                         std::mt19937_64 & m_rng) {
+    // Función auxiliar para get_pixel_color
+    for (int depth = 0; depth < max_depth; ++depth) {
+      Ray current_ray(current_origin, current_direction, ray_color);
+      bool front_face = true;
+      find_closest_intersection(current_ray, front_face);
+      current_ray.color_contribution(background_dark_color, background_light_color, m_rng,
+                                     front_face);
+      ray_color.multiply_in_place(current_ray.get_intersection_color());
+      if (current_ray.get_intersection_distance() == -1.0) {
+        break;
+      }
+
+      if (depth == max_depth - 1) {
+        ray_color = Color(0.0, 0.0, 0.0);
+        break;
+      }
+      current_origin    = current_ray.get_point_intersection();
+      current_direction = current_ray.get_reflected_direction().normalized();
+    }
+    return ray_color;
+  }
+
   Pixel Scene::get_pixel_color(int f, int c, std::mt19937_64 & rng, std::mt19937_64 & m_rng) {
     std::uniform_real_distribution<double> dist(-0.5, 0.5);
-    Color accumulated_color(0.0, 0.0, 0.0);
     Vector const dx           = pov.pw_horizontal_vector().dot(1.0 / pov.get_image_width());
     Vector const dy           = pov.pw_vertical_vector().dot(1.0 / pov.get_image_height());
     Point const initial_point = pov.get_camera_position();
+
+    Color final_accumulated_color = Color(0.0, 0.0, 0.0);
 
     for (int ray_counter = 0; ray_counter < samples_per_pixel; ++ray_counter) {
       double const rx = dist(rng);
@@ -115,30 +142,15 @@ namespace render {
       Vector current_direction = q.substract(pov.get_camera_position()).normalized();
       Color ray_color(1.0, 1.0, 1.0);
 
-      for (int depth = 0; depth < max_depth; ++depth) {
-        Ray ray(current_origin, current_direction, ray_color);
-        bool front_face = true;
-        find_closest_intersection(ray, front_face);
-        ray.color_contribution(background_dark_color, background_light_color, m_rng, front_face);
-        ray_color.multiply_in_place(ray.get_intersection_color());
-        if (ray.get_intersection_distance() == -1.0) {
-          break;
-        }
-
-        if (depth == max_depth - 1) {
-          ray_color = Color(0.0, 0.0, 0.0);
-          break;
-        }
-        current_origin    = ray.get_point_intersection();
-        current_direction = ray.get_reflected_direction().normalized();
-      }
-      accumulated_color.add_in_place(ray_color);
+      Color final_ray_color = depth_ray(current_origin, current_direction, ray_color, m_rng);
+      final_accumulated_color.add_in_place(final_ray_color);
     }
-    accumulated_color.multiply_in_place(1.0 / static_cast<double>(samples_per_pixel));
-    accumulated_color.apply_gamma_correction(gamma);
-    return {static_cast<std::uint8_t>(255.0 * accumulated_color.get_r()),
-            static_cast<std::uint8_t>(255.0 * accumulated_color.get_g()),
-            static_cast<std::uint8_t>(255.0 * accumulated_color.get_b())};
+
+    final_accumulated_color.multiply_in_place(1.0 / static_cast<double>(samples_per_pixel));
+    final_accumulated_color.apply_gamma_correction(gamma);
+    return {static_cast<std::uint8_t>(255.0 * final_accumulated_color.get_r()),
+            static_cast<std::uint8_t>(255.0 * final_accumulated_color.get_g()),
+            static_cast<std::uint8_t>(255.0 * final_accumulated_color.get_b())};
   }
 
   // add
