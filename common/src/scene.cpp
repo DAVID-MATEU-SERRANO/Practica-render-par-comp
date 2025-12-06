@@ -127,23 +127,21 @@ namespace render {
     return ray_color;
   }
 
-  tbb::enumerable_thread_specific<ThreadRNG_sub> Scene::get_pixel_color_parallel(
-      std::uint64_t r_seed, std::uint64_t m_seed) {
-    // Número de hilos y tamaño de grano -> CAMBIAR PARA PRUEBAS
+  Pixel Scene::get_pixel_color(int f, int c, std::uint64_t r_seed, std::uint64_t m_seed) {
+    std::uniform_real_distribution<double> dist(-0.5, 0.5);
+    Vector const dx           = pov.pw_horizontal_vector().dot(1.0 / pov.get_image_width());
+    Vector const dy           = pov.pw_vertical_vector().dot(1.0 / pov.get_image_height());
+    Point const initial_point = pov.get_camera_position();
+
     int const num_threads = 256;
-    // int const grain_size  = 32;
-    //  Limitación global de memoria
     tbb::global_control const global_limit(tbb::global_control::max_allowed_parallelism,
                                            static_cast<std::size_t>(num_threads));
-    // Generación de vectores de semillas
     std::vector<std::uint64_t> ray_seeds(static_cast<std::size_t>(num_threads));
     std::vector<std::uint64_t> mat_seeds(static_cast<std::size_t>(num_threads));
     std::mt19937_64 master_ray_rng(r_seed);
     std::ranges::generate(ray_seeds.begin(), ray_seeds.end(), std::ref(master_ray_rng));
     std::mt19937_64 master_mat_rng(m_seed);
     std::ranges::generate(mat_seeds.begin(), mat_seeds.end(), std::ref(master_mat_rng));
-
-    // Privatización de generadores
     tbb::enumerable_thread_specific<ThreadRNG_sub> thread_rngs([&]() {
       static std::atomic<std::size_t> counter{0};
       std::size_t const idx      = counter++;
@@ -151,17 +149,6 @@ namespace render {
       return ThreadRNG_sub{std::mt19937_64(ray_seeds[safe_idx]),
                            std::mt19937_64(mat_seeds[safe_idx])};
     });
-    return thread_rngs;
-  }
-
-  Pixel Scene::get_pixel_color(int f, int c, std::uint64_t r_seed, std::uint64_t m_seed) {
-    std::uniform_real_distribution<double> dist(-0.5, 0.5);
-    Vector const dx           = pov.pw_horizontal_vector().dot(1.0 / pov.get_image_width());
-    Vector const dy           = pov.pw_vertical_vector().dot(1.0 / pov.get_image_height());
-    Point const initial_point = pov.get_camera_position();
-
-    tbb::enumerable_thread_specific<ThreadRNG_sub> thread_rngs =
-        get_pixel_color_parallel(r_seed, m_seed);
     Color final_accumulated_color = tbb::parallel_reduce(
         tbb::blocked_range<std::size_t>(0, static_cast<std::size_t>(samples_per_pixel)),
         Color(0.0, 0.0, 0.0),
@@ -184,7 +171,11 @@ namespace render {
           }
           return local_sum;
         },
-        [](Color x, Color y) { return x.add(y); });
+        [](Color x, Color y) {
+          x.add_in_place(y);
+          return x;
+        },
+        tbb::auto_partitioner());
 
     final_accumulated_color.multiply_in_place(1.0 / static_cast<double>(samples_per_pixel));
     final_accumulated_color.apply_gamma_correction(gamma);
