@@ -8,16 +8,10 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
-#include <random>
 #include <string>
 #include <vector>
 
 using namespace render;
-
-struct ThreadRNG {
-  std::mt19937_64 ray_rng;
-  std::mt19937_64 mat_rng;
-};
 
 int main(int argc, char * argv[]) {
   try {
