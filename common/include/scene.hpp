@@ -11,7 +11,6 @@
 #include "../include/sphere.hpp"
 #include "../include/vector.hpp"
 #include <map>
-#include <oneapi/tbb/enumerable_thread_specific.h>
 #include <sys/types.h>
 #include <utility>
 #include <vector>
@@ -22,11 +21,6 @@ namespace render {
     std::uint8_t r;
     std::uint8_t g;
     std::uint8_t b;
-  };
-
-  struct ThreadRNG_sub {
-    std::mt19937_64 ray_rng;
-    std::mt19937_64 mat_rng;
   };
 
   struct IntersectionInfo {
@@ -115,13 +109,11 @@ namespace render {
     bool test_cylinder_intersections(Ray & ray, IntersectionInfo & info);
     void find_closest_intersection(Ray & ray, bool & front_face_out);
 
-    [[nodiscard]] Pixel get_pixel_color(int f, int c, std::uint64_t r_seed, std::uint64_t m_seed);
+    [[nodiscard]] Pixel get_pixel_color(int f, int c, std::mt19937_64 & rng,
+                                        std::mt19937_64 & m_rng);
 
     [[nodiscard]] Color depth_ray(Point current_origin, Vector current_direction, Color ray_color,
-                                  std::mt19937_64 m_rng);
-
-    static tbb::enumerable_thread_specific<ThreadRNG_sub> get_pixel_color_parallel(
-        std::uint64_t r_seed, std::uint64_t m_seed);
+                                  std::mt19937_64 & m_rng);
 
     // add
 

@@ -104,7 +104,7 @@ namespace render {
   }
 
   Color Scene::depth_ray(Point current_origin, Vector current_direction, Color ray_color,
-                         std::mt19937_64 m_rng) {
+                         std::mt19937_64 & m_rng) {
     // Función auxiliar para get_pixel_color
     for (int depth = 0; depth < max_depth; ++depth) {
       Ray current_ray(current_origin, current_direction, ray_color);
@@ -127,46 +127,27 @@ namespace render {
     return ray_color;
   }
 
-  Pixel Scene::get_pixel_color(int f, int c, std::uint64_t r_seed, std::uint64_t m_seed) {
+  Pixel Scene::get_pixel_color(int f, int c, std::mt19937_64 & rng, std::mt19937_64 & m_rng) {
     std::uniform_real_distribution<double> dist(-0.5, 0.5);
     Vector const dx           = pov.pw_horizontal_vector().dot(1.0 / pov.get_image_width());
     Vector const dy           = pov.pw_vertical_vector().dot(1.0 / pov.get_image_height());
     Point const initial_point = pov.get_camera_position();
 
-    int const num_threads = 256;
-    tbb::global_control const global_limit(tbb::global_control::max_allowed_parallelism,
-                                           static_cast<std::size_t>(num_threads));
-    std::vector<std::uint64_t> ray_seeds(static_cast<std::size_t>(num_threads));
-    std::vector<std::uint64_t> mat_seeds(static_cast<std::size_t>(num_threads));
-    std::mt19937_64 master_ray_rng(r_seed);
-    std::ranges::generate(ray_seeds.begin(), ray_seeds.end(), std::ref(master_ray_rng));
-    std::mt19937_64 master_mat_rng(m_seed);
-    std::ranges::generate(mat_seeds.begin(), mat_seeds.end(), std::ref(master_mat_rng));
-    tbb::enumerable_thread_specific<ThreadRNG_sub> thread_rngs([&]() {
-      static std::atomic<std::size_t> counter{0};
-      std::size_t const idx      = counter++;
-      std::size_t const safe_idx = idx % static_cast<std::size_t>(num_threads);
-      return ThreadRNG_sub{std::mt19937_64(ray_seeds[safe_idx]),
-                           std::mt19937_64(mat_seeds[safe_idx])};
-    });
     Color final_accumulated_color = tbb::parallel_reduce(
         tbb::blocked_range<std::size_t>(0, static_cast<std::size_t>(samples_per_pixel)),
         Color(0.0, 0.0, 0.0),
         [&](tbb::blocked_range<std::size_t> const & r, Color local_sum) {
           for (std::size_t ray_counter = r.begin(); ray_counter != r.end(); ++ray_counter) {
             // El código de trazado de un rayo va aquí
-            ThreadRNG_sub & local_rng = thread_rngs.local();
-
-            double const rx = dist(local_rng.ray_rng);
-            double const ry = dist(local_rng.ray_rng);
+            double const rx = dist(rng);
+            double const ry = dist(rng);
             Point const q =
                 pov.get_proyection_window().get_origin().add(dx.dot(c + rx)).add(dy.dot(f + ry));
             Point current_origin     = initial_point;
             Vector current_direction = q.substract(pov.get_camera_position()).normalized();
             Color ray_color(1.0, 1.0, 1.0);
 
-            Color final_ray_color =
-                depth_ray(current_origin, current_direction, ray_color, local_rng.mat_rng);
+            Color final_ray_color = depth_ray(current_origin, current_direction, ray_color, m_rng);
             local_sum.add_in_place(final_ray_color);
           }
           return local_sum;
@@ -174,8 +155,7 @@ namespace render {
         [](Color x, Color y) {
           x.add_in_place(y);
           return x;
-        },
-        tbb::auto_partitioner());
+        });
 
     final_accumulated_color.multiply_in_place(1.0 / static_cast<double>(samples_per_pixel));
     final_accumulated_color.apply_gamma_correction(gamma);
