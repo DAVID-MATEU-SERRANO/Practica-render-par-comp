@@ -132,9 +132,10 @@ namespace render {
     Vector const dx           = pov.pw_horizontal_vector().dot(1.0 / pov.get_image_width());
     Vector const dy           = pov.pw_vertical_vector().dot(1.0 / pov.get_image_height());
     Point const initial_point = pov.get_camera_position();
+    int const grain_size      = 32;
 
     Color final_accumulated_color = tbb::parallel_reduce(
-        tbb::blocked_range<std::size_t>(0, static_cast<std::size_t>(samples_per_pixel)),
+        tbb::blocked_range<std::size_t>(0, static_cast<std::size_t>(samples_per_pixel), grain_size),
         Color(0.0, 0.0, 0.0),
         [&](tbb::blocked_range<std::size_t> const & r, Color local_sum) {
           for (std::size_t ray_counter = r.begin(); ray_counter != r.end(); ++ray_counter) {
@@ -155,7 +156,8 @@ namespace render {
         [](Color x, Color y) {
           x.add_in_place(y);
           return x;
-        });
+        },
+        tbb::auto_partitioner());
 
     final_accumulated_color.multiply_in_place(1.0 / static_cast<double>(samples_per_pixel));
     final_accumulated_color.apply_gamma_correction(gamma);
