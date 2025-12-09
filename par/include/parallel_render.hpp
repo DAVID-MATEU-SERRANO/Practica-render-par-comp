@@ -28,7 +28,7 @@ namespace render {
                               int image_height) {
     // Número de hilos y tamaño de grano -> CAMBIAR PARA PRUEBAS
     int const num_threads = 256;
-    int const grain_size  = 32;
+    int const grain_size  = 1;
     // Limitación global de memoria
     tbb::global_control const global_limit(tbb::global_control::max_allowed_parallelism,
                                            static_cast<std::size_t>(num_threads));
@@ -61,7 +61,7 @@ namespace render {
             }
           }
         },
-        tbb::auto_partitioner());
+        tbb::simple_partitioner());
   }
 
 }  // namespace render
